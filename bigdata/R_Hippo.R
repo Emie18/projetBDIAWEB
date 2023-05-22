@@ -47,10 +47,10 @@ valeur_num_type <- function(database, col_name) {
 }
 
 creer_graphique_barres <- function(E1, variable_x, variable_y, x_label, y_label, titre) {
-  
-  plot_ly(E1, x = ~get(variable_x), y = ~get(variable_y), type = "bar") %>%
+  plot_ly(E1 %>% count(!!sym(variable_x)), x = ~get(variable_x), y = ~n, type = "bar") %>%
     layout(xaxis = list(title = x_label), yaxis = list(title = y_label), title = titre)
 }
+
 
 E1 <- valeur_num_type(database, "descr_cat_veh")
 E1 <- valeur_num_type(E1, "descr_agglo")
@@ -70,20 +70,34 @@ suppressWarnings({
   E1[variables_numeriques] <- lapply(E1[variables_numeriques], as.numeric)
 })
 
-# Convertir les variables de date en format date
+# Convertir la colonne de date/heure en format POSIXct
+E1$date <- as.POSIXct(E1$date, format = "%Y-%m-%d %H:%M:%S")
+
+# Extraire l'heure à partir de la colonne de date/heure et créer une nouvelle colonne "heure"
+E1$heure <- format(E1$date, "%H:%M:%S")
+
+plages_horaires <- cut(as.numeric(format(E1$date, "%H")), 
+                       breaks = c(0, 6, 12, 18, 24), 
+                       labels = c("0-6h", "6-12h", "12-18h", "18-24h"),
+                       include.lowest = TRUE)
+
+# Ajouter la colonne des plages horaires au dataframe
+E1$plages_horaires <- plages_horaires
+
+# Convertir la colonne de date en format DATE
 variables_dates <- c("date")
-E1[variables_dates] <- lapply(E1[variables_dates], as.POSIXct)
+E1[variables_dates] <- lapply(E1[variables_dates], as.Date)
 
 # Utilisation de la fonction avec un titre pour les conditions atmosphériques
-creer_graphique_barres(E1, "descr_athmo", "Num_Acc", "Conditions atmosphériques", "Nombre d'accidents", "Nombre d'accidents en fonction des conditions atmosphériques")
+creer_graphique_barres(E1, "descr_athmo", "n", "Conditions atmosphériques", "Nombre d'accidents", "Nombre d'accidents en fonction des conditions atmosphériques")
 
 # Utilisation de la fonction avec un titre pour la description de la surface
-creer_graphique_barres(E1, "descr_etat_surf", "Num_Acc", "Description de la surface", "Nombre d'accidents", "Nombre d'accidents en fonction de la description de la surface")
+creer_graphique_barres(E1, "descr_etat_surf", "n", "Description de la surface", "Nombre d'accidents", "Nombre d'accidents en fonction de la description de la surface")
 
 # Utilisation de la fonction avec un titre pour les villes
-creer_graphique_barres(E1, "ville", "Num_Acc", "Ville", "Nombre d'accidents", "Nombre d'accidents par ville")
+creer_graphique_barres(E1, "ville", "n", "Ville", "Nombre d'accidents", "Nombre d'accidents par ville")
 
-
-
+# Utiliser la fonction creer_graphique_barres mise à jour pour les tranches horaires
+creer_graphique_barres(E1, "plages_horaires", "n", "Tranches horaires", "Nombre d'accidents", "Nombre d'accidents par tranches horaires")
 
 
