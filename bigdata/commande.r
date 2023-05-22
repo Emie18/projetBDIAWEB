@@ -20,9 +20,22 @@ Condition <- Accidents_no_NA$longitude < -90 | Accidents_no_NA$longitude > 90 | 
 database <- subset(Accidents_no_NA, !Condition)
 #summary(database)
 
+fichier_text <- function(contenu,chemin_du_fichier){
+  # Vérifier si le fichier existe
+  if (file.exists(chemin_du_fichier)) {
+    # Si le fichier existe, ajouter le contenu à la fin
+    writeLines(contenu, chemin_du_fichier)
+  } else {
+    # Si le fichier n'existe pas, le créer et y écrire le contenu
+    writeLines(contenu, chemin_du_fichier)
+  }
+}
+
+
 
 
 valeur_num_type <- function(database, col_name) {
+  
   table_types <- table(database[[col_name]])
   print(table_types)
   
@@ -32,15 +45,20 @@ valeur_num_type <- function(database, col_name) {
   for (i in 1:length(types_uniques)) {
     chiffres_associes[i] <- i
   }
+  
   correspondance <- data.frame(Type = types_uniques, Chiffre = chiffres_associes)
+  
+  # Ajout dans un fichier texte des types et de leurs chiffres associés
+  correspondance_text <- paste(correspondance$Chiffre, correspondance$Type)
+  # création d'un fichier text contenant les types et leur chiffre  associé :
+  #-------CHANGER LE CHEMIN D'ACCES-----------------
+  write(correspondance_text, file = "C:/Users/Emilie/documents/ISEN 2022/type.txt", append = TRUE, sep = "\n")
   
   for (i in 1:length(database[[col_name]])) {
     database[[col_name]][i] <- chiffres_associes[match(database[[col_name]][i], types_uniques)]
   }
   variables_numeriques <- c(col_name)
   database[variables_numeriques] <- lapply(database[variables_numeriques], as.numeric)
-  
- 
   
   return(database)
 }
@@ -67,8 +85,46 @@ E1[variables_numeriques] <- lapply(E1[variables_numeriques], as.numeric)
 variables_dates <- c("date")
 E1[variables_dates] <- lapply(E1[variables_dates], as.Date)
 
+library(lubridate)
 
+construire_series_chronologiques <- function(data) {
+  
+  # Agréger par mois
+  accidents_par_mois <- data %>%
+    mutate(Mois = floor_date(date, "month")) %>%
+    group_by(Mois) %>%
+    summarise(Nombre_accidents = n())
+  
+  # Agréger par semaine
+  accidents_par_semaine <- data %>%
+    mutate(Semaine = floor_date(date, "week")) %>%
+    group_by(Semaine) %>%
+    summarise(Nombre_accidents = n())
+  
+  # Régression linéaire pour les séries mensuelles
+  regression_mois <- lm(Nombre_accidents ~ as.Date(Mois), data = accidents_par_mois)
+  
+  # Régression linéaire pour les séries hebdomadaires
+  regression_semaine <- lm(Nombre_accidents ~ as.Date(Semaine), data = accidents_par_semaine)
+  
+  # Calcul des erreurs de prédiction
+  erreur_mois <- sum(regression_mois$residuals^2)
+  erreur_semaine <- sum(regression_semaine$residuals^2)
+  
+  # Détermination du niveau d'agrégation offrant la meilleure prédiction
+  niveau_agregation <- ifelse(erreur_mois < erreur_semaine, "le meilleur niveau pour la prédiction est : mois", "le meilleur niveau pour la prédiction est :semaine")
+  
+  # Résultats
+  resultats <- list(accidents_par_mois = accidents_par_mois,
+                    accidents_par_semaine = accidents_par_semaine,
+                    regression_mois = regression_mois,
+                    regression_semaine = regression_semaine,
+                    erreur_mois = erreur_mois,
+                    erreur_semaine = erreur_semaine,
+                    niveau_agregation = niveau_agregation)
+  
+  return(resultats)
+}
 
-
-
-
+re <- construire_series_chronologiques(E1)
+print(re)
