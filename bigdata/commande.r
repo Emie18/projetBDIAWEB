@@ -16,7 +16,7 @@ Accidents_no_NA <- na.omit(database)
 #Exemple 3: Ligne 52127 -> place = NULL
 
 #Supression des lignes contenant des valeurs absurdes en suivant la condition suivante :
-Condition <- Accidents_no_NA$longitude < -90 | Accidents_no_NA$longitude > 90 | Accidents_no_NA$latitude < -90 | Accidents_no_NA$latitude > 90 | Accidents_no_NA$place == 'NULL'
+Condition <- Accidents_no_NA$longitude < -5.2 | Accidents_no_NA$longitude > 9.66| Accidents_no_NA$latitude < -41.3 | Accidents_no_NA$latitude > 51.1242 | Accidents_no_NA$place == 'NULL'
 database <- subset(Accidents_no_NA, !Condition)
 #summary(database)
 
@@ -126,5 +126,44 @@ construire_series_chronologiques <- function(data) {
   return(resultats)
 }
 
+E1$age <- E1$age - 14
+
+
 re <- construire_series_chronologiques(E1)
 print(re)
+map_region <- function(E1){
+  
+  # Définir les labels personnalisés pour la légende
+  labels_legende <- c("Indemne", "Tué", "Blessé hospitalisé", "Blessé léger")
+  
+  # Convertir la variable descr_grav en facteur avec les labels personnalisés
+  E1$descr_grav <- factor(E1$descr_grav, levels = c("1", "2", "3", "4"), labels = labels_legende)
+  
+  palette <- c("Indemne" = "blue", "Tué" = "black", "Blessé hospitalisé" = "red", "Blessé léger" = "orange")
+  E1$couleur <- palette[as.character(E1$descr_grav)]
+  
+  accidents_par_region <- E1 %>%
+    group_by(descr_agglo) %>%
+    summarise(Quantite_accidents = n())
+  
+  # Création de la carte
+  Sys.setenv("MAPBOX_TOKEN"="pk.eyJ1IjoiZW1pZTE4IiwiYSI6ImNsaDdxdXB2dDAxZmYzZW1tM3hhbWR3b24ifQ.zjp20nsMooS-xVfxn982pA")
+  
+  fig <- plot_ly(E1, type = "scattermapbox", mode = "markers",
+                 lat = ~latitude, lon = ~longitude,
+                 color = ~descr_grav, colors = palette) %>%
+    layout(mapbox = list(accesstoken = Sys.getenv('MAPBOX_TOKEN'),
+                         center = list(lon = 4, lat = 46),
+                         zoom = 4.5,
+                         style = 'mapbox://styles/mapbox/light-v10'),
+           title = list(text = "Accidents en France en 2009", x = 0.5))
+  
+
+  
+  show(fig)
+  
+}
+map_region(E1)
+
+
+
