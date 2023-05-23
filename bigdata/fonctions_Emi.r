@@ -23,7 +23,7 @@ Nettoyage_des_donnees <- function(database){
   #convertir en num
   suppressWarnings({
     
-    variables_numeriques <- c("age", "place", "an_nais", "id_code_insee", "id_usa")
+    variables_numeriques <- c("age", "place", "an_nais", "id_usa")
     database[variables_numeriques] <- lapply(database[variables_numeriques], as.numeric)
   })
   
@@ -107,24 +107,48 @@ construire_series_chronologiques <- function(data) {
   return(resultats)
 }
 
-#fonction pour ajouter les région à la base de données
-ajout_region <- function(E1,tot_habitants,regions){
+ajout_region <- function(E1, tot_habitants, regions) {
+  # Sélectionner les colonnes nécessaires pour la fusion
+  regions <- regions[, c("id_code_insee", "nom_region")]
   
-  #Relier les fichiers CSV en utilisant la colonne commune "code_insee"
+  # Identifier les lignes avec des valeurs en double dans la colonne clé
+  duplicates <- duplicated(regions$id_code_insee)
   
-  reg <- regions[,c("id_code_insee", "code_region")]
-  merge_data <- merge(E1, reg, by ='id_code_insee', all.x = TRUE)
+  # Sélectionner uniquement les lignes uniques
+  regions <- subset(regions, !duplicates)
   
-  pop <- tot_habitants[, c("code_region", "PTOT", "REG")]
-  E1 <- merge(merge_data, pop, by='code_region', all.x = TRUE)
+  # Vérifier les duplications dans la colonne clé "id_code_insee"
+  if (any(duplicated(regions$id_code_insee))) {
+    stop("La colonne 'id_code_insee' dans le fichier 'regions' contient des valeurs en double.")
+  }
   
-  # Calcul du nombre total d'accidents par gravité et région
-  nombre_accidents <- aggregate(E1$descr_grav, by = list(region = E1$REG), FUN = length)
+  # Fusionner les données en utilisant la colonne "id_code_insee" comme clé de fusion
+  E2 <- merge(E1, regions, by = "id_code_insee", all.x = TRUE)
   
-  # Renommer la colonne "x" pour refléter le nombre d'accidents
-  colnames(nombre_accidents) <- c("REG", "nombre_accidents")
+  return(E2)
   
-  return(E1)
+  
+}
+
+ajout_departement <- function(E1,regions) {
+  # Sélectionner les colonnes nécessaires pour la fusion
+  departement <- regions[, c("id_code_insee", "nom_departement")]
+  
+  # Identifier les lignes avec des valeurs en double dans la colonne clé
+  duplicates <- duplicated(departement$id_code_insee)
+  
+  # Sélectionner uniquement les lignes uniques
+  departement <- subset(departement, !duplicates)
+  
+  # Vérifier les duplications dans la colonne clé "id_code_insee"
+  if (any(duplicated(departement$id_code_insee))) {
+    stop("La colonne 'id_code_insee' dans le fichier 'regions' contient des valeurs en double.")
+  }
+  
+  # Fusionner les données en utilisant la colonne "id_code_insee" comme clé de fusion
+  E2 <- merge(E1, departement, by = "id_code_insee", all.x = TRUE)
+  
+  return(E2)
 }
 
 #fonction pour affichier une carte avec les accidents en France en 2009
@@ -139,10 +163,7 @@ map_accident <- function(E1){
   palette <- c("Tué" = "black", "Blessé hospitalisé" = "red", "Blessé léger" = "orange","Indemne" = "blue" )
   E1$couleur <- palette[as.character(E1$descr_grav)]
   
-  accidents_par_region <- E1 %>%
-    group_by(descr_agglo) %>%
-    summarise(Quantite_accidents = n())
-  
+
   # Création de la carte
   Sys.setenv("MAPBOX_TOKEN"="pk.eyJ1IjoiZW1pZTE4IiwiYSI6ImNsaDdxdXB2dDAxZmYzZW1tM3hhbWR3b24ifQ.zjp20nsMooS-xVfxn982pA")
   
@@ -158,3 +179,213 @@ map_accident <- function(E1){
   show(fig)
   
 }
+
+
+map_region <- function(E2,accidents_par_region) {
+
+    # Créer une palette de couleurs en fonction du nombre d'accidents
+  palette <- colorRampPalette(c("#AED9E0","#7BC4E2","#1F8FC2",
+                                "#175C85",
+                                "#A0DED6",
+                                "#3BB4B0",
+                                "#00A79D",
+                                "#008C69",
+                                "#FFF6A5",
+                                "#FFD542",
+                                "#FFA642",
+                                "#FF7F00",
+                                "#FF6B6B",
+                                "#FF4040",
+                                "#B83232"))(length(unique(accidents_par_region$Quantite_accidents)))
+  
+  # Associer une couleur à chaque région en fonction du nombre d'accidents
+  region_colors <- setNames(palette, unique(accidents_par_region$Quantite_accidents))
+  
+  # Ajouter la couleur correspondante à chaque région dans le data frame accidents_par_region
+  accidents_par_region$couleur <- region_colors[as.character(accidents_par_region$nom_region)]
+  
+  # Fusionner les données de accidents_par_region avec le data frame E2
+  E2 <- left_join(E2, accidents_par_region, by = "nom_region")
+  
+  # Création de la carte
+  Sys.setenv("MAPBOX_TOKEN" = "pk.eyJ1IjoiZW1pZTE4IiwiYSI6ImNsaDdxdXB2dDAxZmYzZW1tM3hhbWR3b24ifQ.zjp20nsMooS-xVfxn982pA")
+  
+  fig <- plot_ly(E2, type = "scattermapbox", mode = "markers",
+                 lat = ~latitude, lon = ~longitude,
+                 color = ~Quantite_accidents, colors = palette,
+                 text = ~paste("Région:", nom_region, "<br>Quantité d'accidents:", Quantite_accidents)) %>%
+    layout(mapbox = list(
+      accesstoken = Sys.getenv('MAPBOX_TOKEN'),
+      center = list(lon = 2.454071, lat = 46.603354),
+      zoom = 4.5,
+      style = 'mapbox://styles/mapbox/light-v10'),
+      title = list(text = "Accidents par région", x = 0.5))
+      
+  show(fig)
+}
+map_department <- function(E2,accidents_par_region) {
+  
+  # Créer une palette de couleurs en fonction du nombre d'accidents
+  palette <- colorRampPalette(c("#AED9E0","#7BC4E2","#1F8FC2",
+                                "#175C85",
+                                "#A0DED6",
+                                "#3BB4B0",
+                                "#00A79D",
+                                "#008C69",
+                                "#FFF6A5",
+                                "#FFD542",
+                                "#FFA642",
+                                "#FF7F00",
+                                "#FF6B6B",
+                                "#FF4040",
+                                "#B83232"))(length(unique(accidents_par_departement$Quantite_accidents)))
+  
+  
+  departement_colors <- setNames(palette, unique(accidents_par_departement$Quantite_accidents))
+
+  accidents_par_departement$couleur <- departement_colors[as.character(accidents_par_departement$nom_departement)]
+  
+  E2 <- left_join(E2, accidents_par_departement, by = "nom_departement")
+  
+  # Création de la carte
+  Sys.setenv("MAPBOX_TOKEN" = "pk.eyJ1IjoiZW1pZTE4IiwiYSI6ImNsaDdxdXB2dDAxZmYzZW1tM3hhbWR3b24ifQ.zjp20nsMooS-xVfxn982pA")
+  
+  fig <- plot_ly(E2, type = "scattermapbox", mode = "markers",
+                 lat = ~latitude, lon = ~longitude,
+                 color = ~Quantite_accidents, colors = palette,size = 2,
+                 text = ~paste("Région:", nom_departement, "<br>Quantité d'accidents:", Quantite_accidents)) %>%
+    layout(mapbox = list(
+      accesstoken = Sys.getenv('MAPBOX_TOKEN'),
+      center = list(lon = 2.454071, lat = 46.603354),
+      zoom = 4.5,
+      style = 'mapbox://styles/mapbox/light-v10'),
+      title = list(text = "Accidents par département", x = 0.5))
+  
+  show(fig)
+}
+
+map_region_grave <- function(E2,accidents_par_region) {
+  
+  # Créer une palette de couleurs en fonction du nombre d'accidents
+  palette <- colorRampPalette(c("#AED9E0","#7BC4E2","#1F8FC2",
+                                "#175C85",
+                                "#A0DED6",
+                                "#3BB4B0",
+                                "#00A79D",
+                                "#008C69",
+                                "#FFF6A5",
+                                "#FFD542",
+                                "#FFA642",
+                                "#FF7F00",
+                                "#FF6B6B",
+                                "#FF4040",
+                                "#B83232"))(length(unique(accidents_par_region$Quantite_accidents_graves)))
+  
+  # Associer une couleur à chaque région en fonction du nombre d'accidents
+  region_colors <- setNames(palette, unique(accidents_par_region$Quantite_accidents_graves))
+  
+  # Ajouter la couleur correspondante à chaque région dans le data frame accidents_par_region
+  accidents_par_region$couleur <- region_colors[as.character(accidents_par_region$nom_region)]
+  
+  # Fusionner les données de accidents_par_region avec le data frame E2
+  E2 <- left_join(E2, accidents_par_region, by = "nom_region")
+  
+  # Création de la carte
+  Sys.setenv("MAPBOX_TOKEN" = "pk.eyJ1IjoiZW1pZTE4IiwiYSI6ImNsaDdxdXB2dDAxZmYzZW1tM3hhbWR3b24ifQ.zjp20nsMooS-xVfxn982pA")
+  
+  fig <- plot_ly(E2, type = "scattermapbox", mode = "markers",
+                 lat = ~latitude, lon = ~longitude,
+                 color = ~Quantite_accidents_graves, colors = palette,
+                 text = ~paste("Région:", nom_region, "<br>Quantité d'accidents:", Quantite_accidents_graves)) %>%
+    layout(mapbox = list(
+      accesstoken = Sys.getenv('MAPBOX_TOKEN'),
+      center = list(lon = 2.554071, lat = 46.603354),
+      zoom = 4,
+      style = 'mapbox://styles/mapbox/light-v10'),
+      title = list(text = "Accidents grave par région", x = 0.5))
+  
+  show(fig)
+}
+
+#fonction pour afficher la cartes des accidents graves
+map_departement_grave <- function(E2,accidents_par_region) {
+  
+  # Créer une palette de couleurs en fonction du nombre d'accidents
+  palette <- colorRampPalette(c("#AED9E0","#7BC4E2","#1F8FC2",
+                                "#175C85",
+                                "#A0DED6",
+                                "#3BB4B0",
+                                "#00A79D",
+                                "#008C69",
+                                "#FFF6A5",
+                                "#FFD542",
+                                "#FFA642",
+                                "#FF7F00",
+                                "#FF6B6B",
+                                "#FF4040",
+                                "#B83232"))(length(unique(accidents_par_region$Quantite_accidents_graves)))
+  
+  # Associer une couleur à chaque région en fonction du nombre d'accidents
+  region_colors <- setNames(palette, unique(accidents_par_region$Quantite_accidents_graves))
+  
+  # Ajouter la couleur correspondante à chaque région dans le data frame accidents_par_region
+  accidents_par_region$couleur <- region_colors[as.character(accidents_par_region$nom_departement)]
+  
+  # Fusionner les données de accidents_par_region avec le data frame E2
+  E2 <- left_join(E2, accidents_par_region, by = "nom_departement")
+  
+  # Création de la carte
+  Sys.setenv("MAPBOX_TOKEN" = "pk.eyJ1IjoiZW1pZTE4IiwiYSI6ImNsaDdxdXB2dDAxZmYzZW1tM3hhbWR3b24ifQ.zjp20nsMooS-xVfxn982pA")
+  
+  fig <- plot_ly(E2, type = "scattermapbox", mode = "markers",
+                 lat = ~latitude, lon = ~longitude,
+                 color = ~Quantite_accidents_graves, colors = palette,
+                 text = ~paste("département:", nom_departement, "<br>Quantité d'accidents:", Quantite_accidents_graves)) %>%
+    layout(mapbox = list(
+      accesstoken = Sys.getenv('MAPBOX_TOKEN'),
+      center = list(lon = 2.554071, lat = 46.603354),
+      zoom = 4,
+      style = 'mapbox://styles/mapbox/light-v10'),
+      title = list(text = "Accidents graves par département", x = 0.5))
+  
+  show(fig)
+}
+
+#----------------GAUTHIER----------------------------------------------------------------------------------------#
+
+#fonction pour ajouter les région à la base de données
+ajout_region2 <- function(E1,tot_habitants,regions){
+  
+  #Relier les fichiers CSV en utilisant la colonne commune "code_insee"
+  reg <- regions[,c("id_code_insee", "code_region")]
+  
+  # Identifier les lignes avec des valeurs en double dans la colonne clé
+  duplicates <- duplicated(regions$id_code_insee)
+  
+  # Sélectionner uniquement les lignes uniques
+  regions <- subset(regions, !duplicates)
+  
+  # Vérifier les duplications dans la colonne clé "id_code_insee"
+  if (any(duplicated(regions$id_code_insee))) {
+    stop("La colonne 'id_code_insee' dans le fichier 'regions' contient des valeurs en double.")
+  }
+  
+  E1 <- merge(E1, reg, by ="id_code_insee", all.x = TRUE)
+  
+  pop <- tot_habitants[, c("code_region", "PTOT", "REG")]
+  E1 <- merge(E1, pop, by="code_region", all.x = TRUE)
+  
+  return(E1)
+}
+
+#fonction pour ajouter les région à la base de données*
+JDD_accidents_regions <- function(E_100K) {
+  grav <- E_100K[,c("REG", "PTOT", "descr_grav")]
+  data_final <- grav %>%
+    group_by(descr_grav, REG) %>%
+    summarise(nombre_accidents = n(), PTOT = first(PTOT)) %>%
+    mutate(accidents_par_100k = (nombre_accidents / PTOT) * 100000)
+  return(data_final)
+}
+
+
