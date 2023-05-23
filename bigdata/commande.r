@@ -35,12 +35,54 @@ E1 <- valeur_num_type(E1, "descr_type_col",fichier_type)
 re <- construire_series_chronologiques(E1)
 print(re)
 
+
+E2_dep<- ajout_departement(E1,regions)
 #ajouter les regions à E1
-E1<-ajout_region(E1,tot_habitants,regions)
+E3_reg<-ajout_region(E1,tot_habitants,regions)
 
-#afficher la map des accidents en France
-map_accident(E1)
 
+
+# Calculer le nombre total d'accidents par région
+accidents_par_region <- E3_reg %>%
+  group_by(nom_region) %>%
+  summarise(Quantite_accidents = n())
+
+
+# Calculer le nombre total d'accidents par région
+accidents_par_departement <- E2_dep %>%
+  group_by(nom_departement) %>%
+  summarise(Quantite_accidents = n())
+
+# Calculer le nombre total d'accidents graves par région
+accidents_graves_par_region <- E3_reg %>%
+  filter(descr_grav == 2) %>%
+  group_by(nom_region) %>%
+  summarise(Quantite_accidents_graves = n())
+
+# Calculer le nombre total d'accidents graves par département
+accidents_graves_par_departement <- E2_dep %>%
+  filter(descr_grav == 2) %>%
+  group_by(nom_departement) %>%
+  summarise(Quantite_accidents_graves = n())
+
+#afficher la map des accidents grave en France par région
+#map_region_grave(E3_reg,accidents_graves_par_region)
+
+#afficher la map des accidents grave en France par département
+#map_departement_grave(E2_dep,accidents_graves_par_departement)
+
+#afficher la map  du nombre des accidents en France par département
+#map_department(E2_dep,accidents_par_departement)
+
+#afficher la map du nombre des accidents en France par région
+#map_region(E3_reg,accidents_par_region)
+
+
+#ajouter les regions à E1
+E_100k<-ajout_region2(E1,tot_habitants,regions)
+
+#Jeu de données pour ACP
+E_100k <- JDD_accidents_regions(E_100k)
 
 
 
