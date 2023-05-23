@@ -22,3 +22,20 @@ Condition <- Accidents_no_NA$longitude < -90 | Accidents_no_NA$longitude > 90 | 
 Accidents_filtre <- subset(Accidents_no_NA, !Condition)
 summary(Accidents_filtre)
 View(Accidents_filtre)
+
+
+##5 Construction du jeu de données
+
+#Relier les fichiers CSV en utilisant la colonne commune "code_insee"
+
+reg <- regions[,c("code_commune_INSEE", "code_region")]
+merge_data <- merge(database, reg, by ='code_commune_INSEE', all.x = TRUE)
+
+pop <- tot_habitants[, c("code_region", "PTOT", "REG")]
+database <- merge(merge_data, pop, by='code_region', all.x = TRUE)
+
+# Calcul du nombre total d'accidents par gravité et région
+nombre_accidents <- aggregate(database$descr_grav, by = list(region = database$REG), FUN = length)
+
+# Renommer la colonne "x" pour refléter le nombre d'accidents
+colnames(nombre_accidents) <- c("REG", "nombre_accidents")
