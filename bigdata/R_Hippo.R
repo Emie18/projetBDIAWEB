@@ -47,9 +47,15 @@ valeur_num_type <- function(database, col_name) {
 }
 
 creer_graphique_barres <- function(E1, variable_x, variable_y, x_label, y_label, titre) {
-  plot_ly(E1 %>% count(!!sym(variable_x)), x = ~get(variable_x), y = ~n, type = "bar") %>%
-    layout(xaxis = list(title = x_label), yaxis = list(title = y_label), title = titre)
+  if (variable_x == "ville") {
+    plot_ly(E1 %>% count(!!sym(variable_x)), x = ~get(variable_x), y = ~n, type = "bar") %>%
+      layout(xaxis = list(title = x_label), yaxis = list(title = y_label), title = titre)
+  } else {
+    plot_ly(E1 %>% count(!!sym(variable_x)), x = ~get(variable_x), y = ~n, type = "bar", color = ~as.factor(get(variable_x))) %>%
+      layout(xaxis = list(title = x_label), yaxis = list(title = y_label), title = titre)
+  }
 }
+
 
 
 E1 <- valeur_num_type(database, "descr_cat_veh")
@@ -99,5 +105,4 @@ creer_graphique_barres(E1, "ville", "n", "Ville", "Nombre d'accidents", "Nombre 
 
 # Utiliser la fonction creer_graphique_barres mise à jour pour les tranches horaires
 creer_graphique_barres(E1, "plages_horaires", "n", "Tranches horaires", "Nombre d'accidents", "Nombre d'accidents par tranches horaires")
-
 
