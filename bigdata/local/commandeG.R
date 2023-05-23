@@ -1,41 +1,46 @@
-##1 Suppression des lignes non-valides
+library(tidyverse)
+library(plotly)
+library(dplyr)
+library(lubridate)
+source("C:/ISEN/CIR-3/BigData/projetBDIAWEB/bigdata/local/commande2G.R")
 
-#Importation et visualisation du fichier csv
-Accidents <- read.csv("/ISEN/CIR-3/BigData/Projet/projetBDIAWEB/bigdata/stat_acc_V3.csv", sep=";")
-View(Accidents)
-summary(Accidents)
+#ouverture des fichier csv
+database <- read.csv("C:/ISEN/CIR-3/BigData/projetBDIAWEB/bigdata/stat_acc_V3.csv", header = TRUE, sep = ";")
+tot_habitants <- read.csv("C:/ISEN/CIR-3/BigData/projetBDIAWEB/bigdata/Regions.csv", header = TRUE, sep = ";")
+regions <- read.csv("C:/ISEN/CIR-3/BigData/projetBDIAWEB/bigdata/communes-departement-region.csv", header = TRUE, sep = ",")
+#-------CHANGER LE CHEMIN D'ACCES-----------------#
+fichier_type <- "C:/ISEN/CIR-3/BigData/projetBDIAWEB/bigdata/type.txt"
 
-#Suppression des lignes ne contenant aucunes valeurs
-Accidents_no_NA <- na.omit(Accidents)
-View(Accidents_no_NA)
-summary(Accidents_no_NA)
+#Nettoyage des données
+E1 <- Nettoyage_des_donnees(database)
 
-#On remarque la présence de valeurs maximales absurdes concernant la longitude et la latitude
-#Exemple 1: Ligne 3683 -> longitude > 90
-#Exemple 2: Ligne 3684 -> latitude > 90
+#suppression du fichier s'il existe
+if (file.exists(fichier_type)) {
+  file.remove(fichier_type)
+}
 
-#On remarque aussi que certains accidents possèdent un nombre de place NULL :
-#Exemple 3: Ligne 52127 -> place = NULL
+#convertion des types en chiffre
+E1 <- valeur_num_type(E1, "descr_cat_veh",fichier_type)
+E1 <- valeur_num_type(E1, "descr_agglo",fichier_type)
+E1 <- valeur_num_type(E1, "descr_athmo",fichier_type)
+E1 <- valeur_num_type(E1, "descr_lum",fichier_type)
+E1 <- valeur_num_type(E1, "descr_etat_surf",fichier_type)
+E1 <- valeur_num_type(E1, "description_intersection",fichier_type)
+E1 <- valeur_num_type(E1, "descr_dispo_secu",fichier_type)
+E1 <- valeur_num_type(E1, "descr_grav",fichier_type)
+E1 <- valeur_num_type(E1, "descr_motif_traj",fichier_type)
+E1 <- valeur_num_type(E1, "descr_type_col",fichier_type)
 
-#Supression des lignes contenant des valeurs absurdes en suivant la condition suivante :
-Condition <- Accidents_no_NA$longitude < -90 | Accidents_no_NA$longitude > 90 | Accidents_no_NA$latitude < -90 | Accidents_no_NA$latitude > 90 | Accidents_no_NA$place == 'NULL'
-Accidents_filtre <- subset(Accidents_no_NA, !Condition)
-summary(Accidents_filtre)
-View(Accidents_filtre)
+#appel de la fonction pour contruire la chronologie
+re <- construire_series_chronologiques(E1)
+print(re)
+
+#ajouter les regions à E1
+E1<-ajout_region(E1,tot_habitants,regions)
+
+#Jeu de données
+E2 <- JDD_accidents_regions(E1,tot_habitants,regions)
 
 
-##5 Construction du jeu de données
 
-#Relier les fichiers CSV en utilisant la colonne commune "code_insee"
 
-reg <- regions[,c("code_commune_INSEE", "code_region")]
-merge_data <- merge(database, reg, by ='code_commune_INSEE', all.x = TRUE)
-
-pop <- tot_habitants[, c("code_region", "PTOT", "REG")]
-database <- merge(merge_data, pop, by='code_region', all.x = TRUE)
-
-# Calcul du nombre total d'accidents par gravité et région
-nombre_accidents <- aggregate(database$descr_grav, by = list(region = database$REG), FUN = length)
-
-# Renommer la colonne "x" pour refléter le nombre d'accidents
-colnames(nombre_accidents) <- c("REG", "nombre_accidents")
