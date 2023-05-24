@@ -46,3 +46,84 @@ comparer_regessions <- function(resultats) {
   print(intervalle_confiance_semaine)
   
 }
+
+carte_r <- function(E2,data,code,titre) {
+  
+  # Créer une palette de couleurs en fonction du nombre d'accidents
+  palette <- colorRampPalette(c("#AED9E0","#7BC4E2","#1F8FC2",
+                                "#175C85",
+                                "#A0DED6",
+                                "#3BB4B0",
+                                "#00A79D",
+                                "#008C69",
+                                "#FFF6A5",
+                                "#FFD542",
+                                "#FFA642",
+                                "#FF7F00",
+                                "#FF6B6B",
+                                "#FF4040",
+                                "#B83232"))(length(unique(data$Taux_accidents)))
+  
+  region_colors <- setNames(palette, unique(data$Taux_accidents))
+
+  data$couleur <- region_colors[as.character(data$REG)]
+  
+  E2 <- left_join(E2, data, by = code)
+  
+  # Création de la carte
+  Sys.setenv("MAPBOX_TOKEN" = "pk.eyJ1IjoiZW1pZTE4IiwiYSI6ImNsaTFjYjh6ODAzcjIzcnBkY3MwMGR6ODIifQ.NRJJK2MO77bUnhmVznl46A")
+  
+  fig <- plot_ly(E2, type = "scattermapbox", mode = "markers",
+                 lat = ~latitude, lon = ~longitude,
+                 color = ~Taux_accidents, colors = palette,
+                 text = ~paste("Région : ", nom_region, "<br>Taux d'accidents:", Taux_accidents)) %>%
+    layout(mapbox = list(
+      accesstoken = Sys.getenv('MAPBOX_TOKEN'),
+      center = list(lon = 2.554071, lat = 46.603354),
+      zoom = 4,
+      style = 'mapbox://styles/mapbox/light-v10'),
+      title = list(text = titre, x = 0.5))
+  
+  show(fig)
+}
+
+carte_d <- function(E2,data,code,titre) {
+  
+  # Créer une palette de couleurs en fonction du nombre d'accidents
+  palette <- colorRampPalette(c("#AED9E0","#7BC4E2","#1F8FC2",
+                                "#175C85",
+                                "#A0DED6",
+                                "#3BB4B0",
+                                "#00A79D",
+                                "#008C69",
+                                "#FFF6A5",
+                                "#FFD542",
+                                "#FFA642",
+                                "#FF7F00",
+                                "#FF6B6B",
+                                "#FF4040",
+                                "#B83232"))(length(unique(data$Taux_accidents)))
+  
+  region_colors <- setNames(palette, unique(data$Taux_accidents))
+  
+  data$couleur <- region_colors[as.character(data$REG)]
+  
+  E2 <- left_join(E2, data, by = code)
+  
+  # Création de la carte
+  Sys.setenv("MAPBOX_TOKEN" = "pk.eyJ1IjoiZW1pZTE4IiwiYSI6ImNsaTFjYjh6ODAzcjIzcnBkY3MwMGR6ODIifQ.NRJJK2MO77bUnhmVznl46A")
+  
+  fig <- plot_ly(E2, type = "scattermapbox", mode = "markers",
+                 lat = ~latitude, lon = ~longitude,
+                 color = ~Taux_accidents, colors = palette,
+                 text = ~paste("Département :",nom_departement, "<br>Taux d'accidents:", Taux_accidents)) %>%
+    layout(mapbox = list(
+      accesstoken = Sys.getenv('MAPBOX_TOKEN'),
+      center = list(lon = 2.554071, lat = 46.603354),
+      zoom = 4,
+      style = 'mapbox://styles/mapbox/light-v10'),
+      title = list(text = titre, x = 0.5))
+  
+  show(fig)
+}
+

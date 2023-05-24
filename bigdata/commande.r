@@ -7,10 +7,10 @@ source("C:/Users/Emilie/Documents/ISEN 2022/projet_bigdata/bigdata/fonction_regr
 
 
 #ouverture des fichier csv
-database <- read.csv("C:/Users/Emilie/documents/ISEN 2022/stat_acc_V3.csv", header = TRUE, sep = ";")
-tot_habitants <- read.csv("C:/Users/Emilie/Documents/ISEN 2022/Regions.csv", header = TRUE, sep = ";")
-regions <- read.csv("C:/Users/Emilie/Documents/ISEN 2022/communes-departement-region.csv", header = TRUE, sep = ";")
-tot_habitants_departement <-read.csv("C:/Users/Emilie/Documents/ISEN 2022/ptot_departement.csv", header = TRUE, sep = ",")
+database <- read.csv("C:/Users/Emilie/documents/ISEN 2022/stat_acc_V3.csv", header = TRUE, sep = ";",encoding = "UTF-8")
+tot_habitants <- read.csv("C:/Users/Emilie/Documents/ISEN 2022/Regions.csv", header = TRUE, sep = ";",encoding = "UTF-8")
+regions <- read.csv("C:/Users/Emilie/Documents/ISEN 2022/communes-departement-region.csv", header = TRUE, sep = ";",encoding = "UTF-8")
+tot_habitants_departement <-read.csv("C:/Users/Emilie/Documents/ISEN 2022/ptot_departement.csv", header = TRUE, sep = ",",encoding = "UTF-8")
 #-------CHANGER LE CHEMIN D'ACCES-----------------#
 fichier_type <- "C:/Users/Emilie/documents/ISEN 2022/type.txt"
 
@@ -36,67 +36,50 @@ E1 <- valeur_num_type(E1, "descr_type_col",fichier_type)
 
 #appel de la fonction pour contruire la chronologie
 re <- construire_series_chronologiques(E1)
-print(re)
+regression_semaine<- re$regression_semaine
+regression_mois <- re$regression_mois
+accidents_par_mois_cumulee <- re$accidents_par_mois_cumulee
+accidents_par_semaine_cumulee <- re$accidents_par_semaine_cumulee
+niveau_agregation<- re$niveau_agregation
+plot(accidents_par_mois_cumulee,main="Régression linaire d'accidents par mois")
+abline(coef(regression_mois))
+
+plot(accidents_par_semaine_cumulee,main="Régression linaire d'accidents par semaine")
+abline(coef(regression_semaine))
+
+R2_m <-cor(accidents_par_mois_cumulee,c(1:12))^2
+R2_m
+x_m <-cbind(rep(1,12),accidents_par_mois_cumulee)
+R2_m_ajust <- R2_m-(1-R2_m)/(length(x_m)-1-1)
+R2_m_ajust
+
+R2_s <-cor(accidents_par_mois_cumulee,c(1:53))^2
+R2_s
+x_s <-cbind(rep(1,53),accidents_par_semaine_cumulee)
+R2_s_ajust <- R2_s-(1-R2_s)/(length(x_s)-1-1)
+R2_s_ajust
 
 
 E2_dep<- ajout_departement(E1,regions)
 #ajouter les regions à E1
 E3_reg<-ajout_region(E1,tot_habitants,regions)
 
+resultats <- calculer_accidents(E3_reg, E2_dep, tot_habitants, tot_habitants_departement)
 
+# Récupération des résultats dans des variables individuelles
+accidents_par_region <- resultats$accidents_par_region
+accidents_par_departement <- resultats$accidents_par_departement
+accidents_graves_par_region <- resultats$accidents_graves_par_region
+accidents_graves_par_departement <- resultats$accidents_graves_par_departement
 
-# Calculer le nombre total d'accidents par région
-accidents_par_region <- E3_reg %>%
-  group_by(nom_region) %>%
-  summarise(Quantite_accidents = n())
+accidents_par_departement <- rename(accidents_par_departement,REG=nom_departement)
+accidents_graves_par_departement <- rename(accidents_graves_par_departement,REG=nom_departement)
 
-# Fusionner avec les données de population par région
-accidents_par_region <- merge(accidents_par_region, tot_habitants, by.x = "nom_region", by.y = "REG")
-
-# Calculer le taux d'accidents pour 100 000 habitants
-accidents_par_region$Taux_accidents <- (accidents_par_region$Quantite_accidents / accidents_par_region$PTOT) * 100000
-
-# Afficher les résultats
-accidents_par_region
-
-
-# Calculer le nombre total d'accidents par région
-accidents_par_departement <- E2_dep %>%
-  group_by(nom_departement) %>%
-  summarise(Quantite_accidents = n())
-
-# Fusionner avec les données de population par région
-accidents_par_departement <- merge(accidents_par_departement, tot_habitants_departement, by = "nom_departement")
-
-# Calculer le taux d'accidents pour 100 000 habitants
-accidents_par_departement$Taux_accidents <- (accidents_par_departement$Quantite_accidents / accidents_par_region$PTOT) * 100000
-
-# Afficher les résultats
-accidents_par_departement
-
-# Calculer le nombre total d'accidents graves par région
-accidents_graves_par_region <- E3_reg %>%
-  filter(descr_grav == 2) %>%
-  group_by(nom_region) %>%
-  summarise(Quantite_accidents_graves = n())
-
-# Calculer le nombre total d'accidents graves par département
-accidents_graves_par_departement <- E2_dep %>%
-  filter(descr_grav == 2) %>%
-  group_by(nom_departement) %>%
-  summarise(Quantite_accidents_graves = n())
-
-#afficher la map des accidents grave en France par région
-map_region_grave(E3_reg,accidents_graves_par_region)
-
-#afficher la map des accidents grave en France par département
-map_departement_grave(E2_dep,accidents_graves_par_departement)
-
-#afficher la map  du nombre des accidents en France par département
-map_department(E2_dep,accidents_par_departement)
-
-#afficher la map du nombre des accidents en France par région
-map_region(E3_reg,accidents_par_region)
+#afficher les cartes des accidents par régions et par départements
+carte_r(E3_reg,accidents_par_region,"code_region","Taux d'accidents par région pour 100k/habitants en 2009")
+carte_r(E3_reg,accidents_graves_par_region,"code_region","Taux d'accidents grave par région pour 100k/habitants en 2009")
+carte_d(E2_dep,accidents_par_departement,"code_departement","Taux d'accidents par département pour 100k/habitants en 2009")
+carte_d(E2_dep,accidents_graves_par_departement,"code_departement","Taux d'accidents grave par département pour 100k/habitants en 2009")
 
 
 #ajouter les regions à E1
@@ -106,6 +89,8 @@ E_100k<-ajout_region2(E1,tot_habitants,regions)
 E_100k <- JDD_accidents_regions(E_100k)
 
 comparer_regessions(re)
+
+
 
 
 
