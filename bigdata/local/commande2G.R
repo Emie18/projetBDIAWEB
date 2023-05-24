@@ -4,10 +4,7 @@
 
 #fonction pour nettoyer les données, enlever les lignes, avec des valeurs manquante ou absurde
 Nettoyage_des_donnees <- function(database){
-  
-  #Suppression des lignes ne contenant aucunes valeurs
-  Accidents_no_NA <- na.omit(database)
-  #summary(Accidents_no_NA)
+
   
   #On remarque la présence de valeurs maximales absurdes concernant la longitude et la latitude
   #Exemple 1: Ligne 3683 -> longitude > 90
@@ -17,20 +14,27 @@ Nettoyage_des_donnees <- function(database){
   #Exemple 3: Ligne 52127 -> place = NULL
   
   #Supression des lignes contenant des valeurs absurdes en suivant la condition suivante :
-  Condition <- Accidents_no_NA$longitude < -5.2667 | Accidents_no_NA$longitude > 9.6625 | Accidents_no_NA$latitude < 41.3333 | Accidents_no_NA$latitude > 51.1242 | Accidents_no_NA$place == 'NULL'
-  database <- subset(Accidents_no_NA, !Condition)
+  Condition <- database$longitude < -5.2667 | database$longitude > 9.6625 | database$latitude < 41.3333 | database$latitude > 51.1242 | database$place == 'NULL'
+  database <- subset(database, !Condition)
   #summary(database)
+  
   #convertir en num
   suppressWarnings({
-    
     variables_numeriques <- c("age", "place", "an_nais", "code_INSEE", "id_usa")
-    database[variables_numeriques] <- lapply(database[variables_numeriques], as.numeric)
+    database <- database %>% mutate(across(all_of(variables_numeriques), as.numeric))
   })
   
   # Convertir les variables de date en format date
   variables_dates <- c("date")
-  database[variables_dates] <- lapply(database[variables_dates], as.Date)
+  database <- database %>% mutate(across(all_of(variables_dates), as.Date))
   
+  #Suppression des lignes en double
+  duplicated_rows <- duplicated(database)
+  data_unique <- database[!duplicated_rows, ]
+  
+  #Suppression des lignes ne contenant aucunes valeurs
+  database <- na.omit(database)
+  #summary(Accidents_no_NA)
   #modifier l'age:
   database$age <- database$age - 14
   return(database)
@@ -174,4 +178,60 @@ map_accident <- function(E1){
   
   show(fig)
   
+}
+
+hist_accident <- function(E1){
+  # Création des tranches d'âges
+  tranches <- cut(E1$age, breaks = c(0, 18, 25, 35, 45, 55, 65, Inf), labels = c("0-18", "19-25", "26-35", "36-45", "46-55", "56-65", "66+"))
+  
+  # Comptage du nombre d'accidents par tranche d'âge
+  accidents_par_tranche <- table(tranches)
+  
+  # Création de l'histogramme avec Plotly
+  histogramme <- plot_ly(x = names(accidents_par_tranche), y = accidents_par_tranche, type = "bar",
+                         marker = list(color = "blue")) %>%
+    layout(title = "Quantité d'accidents en fonction des tranches d'âges",
+           xaxis = list(title = "Tranche d'âge"),
+           yaxis = list(title = "Nombre d'accidents"))
+  
+}
+
+
+hist_accident <- function(E1){
+  # Création des tranches d'âges
+  tranches <- cut(E1$age, breaks = c(0, 18, 25, 35, 45, 55, 65, Inf), labels = c("0-18", "19-25", "26-35", "36-45", "46-55", "56-65", "66+"))
+  
+  # Comptage du nombre d'accidents par tranche d'âge
+  accidents_par_tranche <- table(tranches)
+  
+  # Création de l'histogramme avec Plotly
+  histogramme <- plot_ly(x = names(accidents_par_tranche), y = accidents_par_tranche, type = "bar", marker = list(color = "blue")) %>%
+    layout(title = "Quantité d'accidents en fonction des tranches d'âges",
+          xaxis = list(title = "Tranche d'âge"),
+           yaxis = list(title = "Nombre d'accidents"),
+          bargap = 0)
+  
+  # Affichage de l'histogramme
+  print(histogramme)
+}
+
+hist_mensuel <- function(E1) {
+  # Création d'une colonne "mois" à partir de la colonne de dates
+  E1$mois <- format(E1$date, "%m")
+  
+  # Comptage du nombre d'accidents par mois
+  accidents_par_mois <- table(E1$mois)
+  
+  mois <- c("a.JANV", "b.FEV", "c.MARS", "d.APR", "e.MAI", "f.JUIN", "g.JUIL", "h.AOUT", "i.SEPT", "j.OCT", "k.NOV", "l.DEC")
+  
+  # Création de l'histogramme avec Plotly
+  histogramme <- plot_ly(x = mois, y = accidents_par_mois, type = "bar",
+                         marker = list(color = "red")) %>%
+    layout(title = "Quantité d'accidents en fonction des mois",
+           xaxis = list(title = "Mois"),
+           yaxis = list(title = "Nombre d'accidents"),
+           bargap = 0)
+  
+  # Affichage de l'histogramme
+  print(histogramme)
 }

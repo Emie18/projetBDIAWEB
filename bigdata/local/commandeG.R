@@ -2,12 +2,13 @@ library(tidyverse)
 library(plotly)
 library(dplyr)
 library(lubridate)
+library(ggplot2)
 source("C:/ISEN/CIR-3/BigData/projetBDIAWEB/bigdata/local/commande2G.R")
 
 #ouverture des fichier csv
-database <- read.csv("C:/ISEN/CIR-3/BigData/projetBDIAWEB/bigdata/stat_acc_V3.csv", header = TRUE, sep = ";")
-tot_habitants <- read.csv("C:/ISEN/CIR-3/BigData/projetBDIAWEB/bigdata/Regions.csv", header = TRUE, sep = ";")
-regions <- read.csv("C:/ISEN/CIR-3/BigData/projetBDIAWEB/bigdata/communes-departement-region.csv", header = TRUE, sep = ",")
+database <- read.csv("C:/ISEN/CIR-3/BigData/projetBDIAWEB/bigdata/stat_acc_V3.csv", header = TRUE, sep = ";", encoding = "utf-8")
+tot_habitants <- read.csv("C:/ISEN/CIR-3/BigData/projetBDIAWEB/bigdata/Regions.csv", header = TRUE, sep = ";", encoding = "utf-8")
+regions <- read.csv("C:/ISEN/CIR-3/BigData/projetBDIAWEB/bigdata/communes-departement-region.csv", header = TRUE, sep = ";", encoding = "utf-8")
 #-------CHANGER LE CHEMIN D'ACCES-----------------#
 fichier_type <- "C:/ISEN/CIR-3/BigData/projetBDIAWEB/bigdata/type.txt"
 
@@ -41,6 +42,10 @@ E1<-ajout_region(E1,tot_habitants,regions)
 #Jeu de données
 E2 <- JDD_accidents_regions(E1,tot_habitants,regions)
 
+#Histogramme sur le nombre d'accidents par tranches d'âges
+hist_accident(E1)
 
+#Histogramme sur le nombre d'accidents par mois
+hist_mensuel(E1)
 
-
+#Régressions linéaires de l’évolution du nombre d’accidents par mois, puis par semaine

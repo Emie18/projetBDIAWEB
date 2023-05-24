@@ -33,6 +33,7 @@ Nettoyage_des_donnees <- function(database){
   
   #modifier l'age:
   database$age <- database$age - 14
+  database <- database %>% filter(year(date) != 2008)
   return(database)
   
 }
@@ -196,10 +197,10 @@ map_region <- function(E2,accidents_par_region) {
                                 "#FF7F00",
                                 "#FF6B6B",
                                 "#FF4040",
-                                "#B83232"))(length(unique(accidents_par_region$Quantite_accidents)))
+                                "#B83232"))(length(unique(accidents_par_region$Taux_accidents)))
   
   # Associer une couleur à chaque région en fonction du nombre d'accidents
-  region_colors <- setNames(palette, unique(accidents_par_region$Quantite_accidents))
+  region_colors <- setNames(palette, unique(accidents_par_region$Taux_accidents))
   
   # Ajouter la couleur correspondante à chaque région dans le data frame accidents_par_region
   accidents_par_region$couleur <- region_colors[as.character(accidents_par_region$nom_region)]
@@ -208,18 +209,18 @@ map_region <- function(E2,accidents_par_region) {
   E2 <- left_join(E2, accidents_par_region, by = "nom_region")
   
   # Création de la carte
-  Sys.setenv("MAPBOX_TOKEN" = "pk.eyJ1IjoiZW1pZTE4IiwiYSI6ImNsaDdxdXB2dDAxZmYzZW1tM3hhbWR3b24ifQ.zjp20nsMooS-xVfxn982pA")
+  Sys.setenv("MAPBOX_TOKEN" = "pk.eyJ1IjoiZW1pZTE4IiwiYSI6ImNsaTFjYjh6ODAzcjIzcnBkY3MwMGR6ODIifQ.NRJJK2MO77bUnhmVznl46A")
   
   fig <- plot_ly(E2, type = "scattermapbox", mode = "markers",
                  lat = ~latitude, lon = ~longitude,
-                 color = ~Quantite_accidents, colors = palette,
-                 text = ~paste("Région:", nom_region, "<br>Quantité d'accidents:", Quantite_accidents)) %>%
+                 color = ~Taux_accidents, colors = palette,
+                 text = ~paste("Région:", nom_region, "<br>Taux d'accidents:", Taux_accidents)) %>%
     layout(mapbox = list(
       accesstoken = Sys.getenv('MAPBOX_TOKEN'),
       center = list(lon = 2.454071, lat = 46.603354),
       zoom = 4.5,
       style = 'mapbox://styles/mapbox/light-v10'),
-      title = list(text = "Accidents par région", x = 0.5))
+      title = list(text = "Taux d'accidents par région pour 100k/habitants en 2009", x = 0.5))
       
   show(fig)
 }
