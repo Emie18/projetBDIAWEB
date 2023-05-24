@@ -22,14 +22,13 @@ Nettoyage_des_donnees <- function(database){
   #summary(database)
   #convertir en num
   suppressWarnings({
-    
     variables_numeriques <- c("age", "place", "an_nais", "code_INSEE", "id_usa")
-    database[variables_numeriques] <- lapply(database[variables_numeriques], as.numeric)
+    database <- database %>% mutate(across(all_of(variables_numeriques), as.numeric))
   })
   
   # Convertir les variables de date en format date
   variables_dates <- c("date")
-  database[variables_dates] <- lapply(database[variables_dates], as.Date)
+  database <- database %>% mutate(across(all_of(variables_dates), as.Date))
   
   #modifier l'age:
   database$age <- database$age - 14
@@ -174,4 +173,58 @@ map_accident <- function(E1){
   
   show(fig)
   
+}
+
+hist_accident <- function(E1){
+  # Création des tranches d'âges
+  tranches <- cut(E1$age, breaks = c(0, 18, 25, 35, 45, 55, 65, Inf), labels = c("0-18", "19-25", "26-35", "36-45", "46-55", "56-65", "66+"))
+  
+  # Comptage du nombre d'accidents par tranche d'âge
+  accidents_par_tranche <- table(tranches)
+  
+  # Création de l'histogramme avec Plotly
+  histogramme <- plot_ly(x = names(accidents_par_tranche), y = accidents_par_tranche, type = "bar",
+                         marker = list(color = "blue")) %>%
+    layout(title = "Quantité d'accidents en fonction des tranches d'âges",
+           xaxis = list(title = "Tranche d'âge"),
+           yaxis = list(title = "Nombre d'accidents"))
+  
+}
+
+
+hist_accident <- function(E1){
+  # Création des tranches d'âges
+  tranches <- cut(E1$age, breaks = c(0, 18, 25, 35, 45, 55, 65, Inf), labels = c("0-18", "19-25", "26-35", "36-45", "46-55", "56-65", "66+"))
+  
+  # Comptage du nombre d'accidents par tranche d'âge
+  accidents_par_tranche <- table(tranches)
+  
+  # Création de l'histogramme avec Plotly
+  histogramme <- plot_ly(x = names(accidents_par_tranche), y = accidents_par_tranche, type = "bar",
+                         marker = list(color = "blue")) %>%
+    layout(title = "Quantité d'accidents en fonction des tranches d'âges",
+           xaxis = list(title = "Tranche d'âge"),
+           yaxis = list(title = "Nombre d'accidents"))
+  
+  # Affichage de l'histogramme
+  print(histogramme)
+}
+
+hist_mensuel <- function(E1) {
+  # Création d'une colonne "mois" à partir de la colonne de dates
+  E1$mois <- format(E1$date, "%m")
+  
+  # Comptage du nombre d'accidents par mois
+  accidents_par_mois <- table(E1$mois)
+  mois <- c("a.JANV", "b.FEV", "c.MARS", "d.APR", "e.MAI", "f.JUIN", "g.JUIL", "h.AOUT", "i.SEPT", "j.OCT", "k.NOV", "l.DEC")
+  
+  # Création de l'histogramme avec Plotly
+  histogramme <- plot_ly(x = mois, y = accidents_par_mois, type = "bar",
+                         marker = list(color = "red")) %>%
+    layout(title = "Quantité d'accidents en fonction des mois",
+           xaxis = list(title = "Mois"),
+           yaxis = list(title = "Nombre d'accidents"))
+  
+  # Affichage de l'histogramme
+  print(histogramme)
 }

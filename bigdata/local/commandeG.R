@@ -41,6 +41,9 @@ E1<-ajout_region(E1,tot_habitants,regions)
 #Jeu de données
 E2 <- JDD_accidents_regions(E1,tot_habitants,regions)
 
+#Histogramme sur le nombre d'accidents par tranches d'âges
+hist_accident(E1)
 
-
+#Histogramme sur le nombre d'accidents par mois
+hist_mensuel(E1)
 
