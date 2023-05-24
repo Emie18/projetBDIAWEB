@@ -1,7 +1,4 @@
 # projetBDIAWEB
-# Partie R
-Ce fichier README fournit une documentation pour le code R fourni dans le script "stat_acc.R". Le script effectue diverses analyses et visualisations de données à partir d'un ensemble de données sur les accidents de la route.
-
 # Partie BigData
 
 Ce fichier README fournit une documentation pour le code R fourni dans le script "stat_acc.R". Le script effectue diverses analyses et visualisations de données à partir d'un ensemble de données sur les accidents de la route.
