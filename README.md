@@ -55,4 +55,4 @@ Les résultats des analyses croisées et des tests d'indépendance du chi2 sont 
 
 ## Auteur
 
-Ce script R a été rédigé par  et est fourni dans le cadre d'un projet ou d'une analyse de données.
+Ce script R a été rédigé et est fourni dans le cadre d'un projet ou d'une analyse de données.
