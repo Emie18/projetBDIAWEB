@@ -3,7 +3,7 @@ library(plotly)
 library(dplyr)
 library(lubridate)
 #####LIRE CSV####
-database <- read.csv("C:/Users/33784/Desktop/stat_acc_V3.csv", header = TRUE, sep = ";")
+database <- read.csv("C:/Users/33784/Desktop/stat_acc_V3.csv", header = TRUE, sep = ";",encoding = "UTF-8")
 
 #Suppression des lignes ne contenant aucunes valeurs
 Accidents_no_NA <- na.omit(database)
@@ -148,6 +148,11 @@ graphique_mois <- creer_graphique_barres_v2(accidents_par_mois, "Mois", "Nombre_
 
 print(re)
 #####AF####
+# Création d'une table avec le nombre d'accidents par ville
+table_villes <- E1 %>% count(ville, sort = TRUE)
+
+# Sélection des 30 premières villes
+top_villes <- head(table_villes, 30)
 # Calculer le nombre d'accidents par jour de la semaine
 accidents_par_jour_semaine <- E1 %>%
   mutate(Jour_semaine = wday(date, label = TRUE)) %>%
@@ -161,14 +166,13 @@ plot <- plot_ly(accidents_par_jour_semaine, x = ~Jour_semaine, y = ~n, type = "b
 plot <- plot %>% layout(xaxis = list(title = "Jour de la semaine"), yaxis = list(title = "Nombre d'accidents"))
 
 #graphique condition atmo
-creer_graphique_barres_v1(E1, "descr_athmo", "n", "Conditions atmosphériques", "Nombre d'accidents", "Nombre d'accidents en fonction des conditions atmosphériques")
+creer_graphique_barres_v1(database, "descr_athmo", "n", "Conditions atmosphériques", "Nombre d'accidents", "Nombre d'accidents en fonction des conditions atmosphériques")
 
 #graphique surface
-creer_graphique_barres_v1(E1, "descr_etat_surf", "n", "Description de la surface", "Nombre d'accidents", "Nombre d'accidents en fonction de la description de la surface")
+creer_graphique_barres_v1(database, "descr_etat_surf", "n", "Description de la surface", "Nombre d'accidents", "Nombre d'accidents en fonction de la description de la surface")
 
 #graphque avec les villes
-creer_graphique_barres_v1(E1, "ville", "n", "Ville", "Nombre d'accidents", "Nombre d'accidents par ville")
-
+creer_graphique_barres_v2(top_villes, "ville", "n", "Ville", "Nombre d'accidents", "Top 30 des villes par nombre d'accidents")
 #graphique avec les tranches horaires
 creer_graphique_barres_v1(E1, "plages_horaires", "n", "Tranches horaires", "Nombre d'accidents", "Nombre d'accidents par tranches horaires")
 
@@ -208,41 +212,7 @@ print(test_chi2_2)
 mosaicplot(table_croisee_1, shade = TRUE)
 mosaicplot(table_croisee_2, shade = TRUE)
 
-# Régressions linéaires du nombre d'accidents par mois et par semaine
-regression_mois <- lm(Nombre_accidents ~ as.Date(Mois), data = accidents_par_mois)
-regression_semaine <- lm(Nombre_accidents ~ as.Date(Semaine), data = accidents_par_semaine)
 
-# Analyse des performances de la régression
-performance_mois <- summary(regression_mois)
-performance_semaine <- summary(regression_semaine)
-
-# Affichage des performances
-print("Régression linéaire - Mois")
-print(performance_mois)
-print("Régression linéaire - Semaine")
-print(performance_semaine)
-
-# Erreurs types associées aux estimateurs
-erreur_type_mois <- sqrt(diag(vcov(regression_mois)))
-erreur_type_semaine <- sqrt(diag(vcov(regression_semaine)))
-
-# Intervalles de confiance à 95% pour les estimateurs
-intervalle_confiance_mois <- confint(regression_mois, level = 0.95)
-intervalle_confiance_semaine <- confint(regression_semaine, level = 0.95)
-
-# Calcul des R2 et R2 ajusté pour les deux modèles
-R2_mois <- performance_mois$r.squared
-R2_ajuste_mois <- performance_mois$adj.r.squared
-R2_semaine <- performance_semaine$r.squared
-R2_ajuste_semaine <- performance_semaine$adj.r.squared
-
-# Affichage des résultats
-print("Régression linéaire - Mois")
-print(paste("R2 :", R2_mois))
-print(paste("R2 ajusté :", R2_ajuste_mois))
-print("Régression linéaire - Semaine")
-print(paste("R2 :", R2_semaine))
-print(paste("R2 ajusté :", R2_ajuste_semaine))
 
 
 
