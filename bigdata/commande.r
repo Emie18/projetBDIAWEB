@@ -3,6 +3,7 @@ library(plotly)
 library(dplyr)
 library(lubridate)
 source("C:/Users/Emilie/Documents/ISEN 2022/projet_bigdata/bigdata/fonctions_Emi.r")
+source("C:/Users/Emilie/Documents/ISEN 2022/projet_bigdata/bigdata/fonction_regression.r")
 
 #ouverture des fichier csv
 database <- read.csv("C:/Users/Emilie/documents/ISEN 2022/stat_acc_V3.csv", header = TRUE, sep = ";")
@@ -83,6 +84,8 @@ E_100k<-ajout_region2(E1,tot_habitants,regions)
 
 #Jeu de données pour ACP
 E_100k <- JDD_accidents_regions(E_100k)
+
+comparer_regessions(re)
 
 
 
