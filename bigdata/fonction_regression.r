@@ -1,12 +1,12 @@
-#-----------------------#
-#---fichier Fonctions---#
-#-----------------------#
+##################################################
+# Titre du script : Analyse des accidents de la route
+# Auteur : groupe
+# Date : 25/05/2023
+##################################################
 
 #fonction pour comparer la regression de 
 comparer_regessions <- function(resultats) {
   
-  #récupéré la reponse quel est le meilleur pour prédire:
-  niveau_agregation <- resultats$niveau_agregation
   # Extraire les résultats des régressions
   regression_mois <- resultats$regression_mois
   regression_semaine <- resultats$regression_semaine
@@ -14,7 +14,6 @@ comparer_regessions <- function(resultats) {
   # Analyser les performances de la régression
   performance_mois <- summary(regression_mois)$r.squared
   performance_semaine <- summary(regression_semaine)$r.squared
-  
   
   # Calculer les intervalles de confiance à 95% pour ces estimateurs
   intervalle_confiance_mois <- confint(regression_mois)
@@ -25,6 +24,10 @@ comparer_regessions <- function(resultats) {
   r2_ajuste_mois <- summary(regression_mois)$adj.r.squared
   r2_semaine <- summary(regression_semaine)$r.squared
   r2_ajuste_semaine <- summary(regression_semaine)$adj.r.squared
+  
+  # Calculer les erreurs types associées aux estimateurs
+  erreur_type_mois <- summary(regression_mois)$sigma
+  erreur_type_semaine <- summary(regression_semaine)$sigma
   
   # Afficher les résultats
   cat("Performances de la régression (R2) :\n")
@@ -44,7 +47,15 @@ comparer_regessions <- function(resultats) {
   print(intervalle_confiance_mois)
   cat("\nRégression semaine :\n")
   print(intervalle_confiance_semaine)
-  cat("Le meilleur :",niveau_agregation,"\n")
+  
+  # Comparaison des modèles
+  if (r2_ajuste_mois > r2_ajuste_semaine) {
+    cat("Le meilleur modèle est la régression par mois.")
+  } else if (r2_ajuste_mois < r2_ajuste_semaine) {
+    cat("Le meilleur modèle est la régression par semaine.")
+  } else {
+    cat("Les deux modèles ont des performances similaires.")
+  }
   
 }
 
@@ -66,7 +77,7 @@ carte_r <- function(E2,data,code,titre) {
                                 "#B83232"))(length(unique(data$Taux_accidents)))
   
   region_colors <- setNames(palette, unique(data$Taux_accidents))
-
+  
   data$couleur <- region_colors[as.character(data$REG)]
   
   E2 <- left_join(E2, data, by = code)
@@ -89,9 +100,7 @@ carte_r <- function(E2,data,code,titre) {
 }
 
 carte_d <- function(E2,data,code,titre) {
-  
-  # Créer une palette de couleurs en fonction du nombre d'accidents
-  palette <- colorRampPalette(c("#AED9E0","#7BC4E2","#1F8FC2",
+    palette <- colorRampPalette(c("#AED9E0","#7BC4E2","#1F8FC2",
                                 "#175C85",
                                 "#A0DED6",
                                 "#3BB4B0",
@@ -104,16 +113,16 @@ carte_d <- function(E2,data,code,titre) {
                                 "#FF6B6B",
                                 "#FF4040",
                                 "#B83232"))(length(unique(data$Taux_accidents)))
-  
+
   region_colors <- setNames(palette, unique(data$Taux_accidents))
-  
+
   data$couleur <- region_colors[as.character(data$REG)]
-  
+
   E2 <- left_join(E2, data, by = code)
-  
-  # Création de la carte
+  E2$Taux_accidents <- replace(E2$Taux_accidents, is.na(E2$Taux_accidents), 0)
+
   Sys.setenv("MAPBOX_TOKEN" = "pk.eyJ1IjoiZW1pZTE4IiwiYSI6ImNsaTFjYjh6ODAzcjIzcnBkY3MwMGR6ODIifQ.NRJJK2MO77bUnhmVznl46A")
-  
+
   fig <- plot_ly(E2, type = "scattermapbox", mode = "markers",
                  lat = ~latitude, lon = ~longitude,
                  color = ~Taux_accidents, colors = palette,
@@ -124,7 +133,7 @@ carte_d <- function(E2,data,code,titre) {
       zoom = 4,
       style = 'mapbox://styles/mapbox/light-v10'),
       title = list(text = titre, x = 0.5))
-  
+
   show(fig)
 }
 
@@ -148,4 +157,3 @@ creer_graphique_barres_v2 <- function(E1, variable_x, variable_y, x_label, y_lab
   plot_ly(E1, x = ~get(variable_x), y = ~get(variable_y), type = "bar", color = ~get(variable_x)) %>%
     layout(xaxis = list(title = x_label), yaxis = list(title = y_label), title = titre)
 }
-

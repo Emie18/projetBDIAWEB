@@ -1,72 +1,86 @@
-#-----------------------#
-#---fichier Fonctions---#
-#-----------------------#
+##################################################
+# Titre du script : Analyse des accidents de la route
+# Auteur : groupe
+# Date : 25/05/2023
+##################################################
 
-#fonction pour nettoyer les données, enlever les lignes, avec des valeurs manquante ou absurde
 Nettoyage_des_donnees <- function(database){
-  
-  #Suppression des lignes ne contenant aucunes valeurs
+  # Suppression des lignes ne contenant aucune valeur
   Accidents_no_NA <- na.omit(database)
-  #summary(Accidents_no_NA)
   
-  #On remarque la présence de valeurs maximales absurdes concernant la longitude et la latitude
-  #Exemple 1: Ligne 3683 -> longitude > 90
-  #Exemple 2: Ligne 3684 -> latitude > 90
-  
-  #On remarque aussi que certains accidents possèdent un nombre de place NULL :
-  #Exemple 3: Ligne 52127 -> place = NULL
-  
-  #Supression des lignes contenant des valeurs absurdes en suivant la condition suivante :
-  Condition <- Accidents_no_NA$longitude < -5.2 | Accidents_no_NA$longitude > 9.66| Accidents_no_NA$latitude < -41.3 | Accidents_no_NA$latitude > 51.1242 | Accidents_no_NA$place == 'NULL'
+  # Suppression des lignes contenant des valeurs absurdes
+  Condition <- Accidents_no_NA$longitude < -5.2 | Accidents_no_NA$longitude > 9.66 | Accidents_no_NA$latitude < -41.3 | Accidents_no_NA$latitude > 51.1242 | Accidents_no_NA$place == 'NULL'
   database <- subset(Accidents_no_NA, !Condition)
-  #summary(database)
-  #convertir en num
+  
+  # Conversion des variables numériques
   suppressWarnings({
-    
     variables_numeriques <- c("age", "place", "an_nais", "id_usa")
     database[variables_numeriques] <- lapply(database[variables_numeriques], as.numeric)
   })
   
-  # Convertir les variables de date en format date
-  variables_dates <- c("date")
-  database[variables_dates] <- lapply(database[variables_dates], as.Date)
+  # Conversion de la colonne de date en format POSIXct
+  database$date <- as.POSIXct(database$date, format = "%Y-%m-%d %H:%M:%S")
   
-  #modifier l'age:
+  # Extraction de l'heure à partir de la colonne de date et création d'une nouvelle colonne "heure"
+  database$heure <- format(database$date, "%H:%M:%S")
+  
+  # Diviser les heures en plages horaires (0-6h, 6-12h, 12-18h, 18-24h)
+  plages_horaires <- cut(as.numeric(format(database$date, "%H")), 
+                         breaks = c(0, 6, 12, 18, 24), 
+                         labels = c("0-6h", "6-12h", "12-18h", "18-24h"),
+                         include.lowest = TRUE)
+  
+  # Ajouter la colonne des plages horaires au dataframe
+  database$plages_horaires <- plages_horaires
+  
+  # Modifier l'âge
   database$age <- database$age - 14
-  database <- database %>% filter(year(date) != 2008)
-  return(database)
   
+  # Filtrer les accidents de l'année 2008
+  database <- database %>% filter(year(date) != 2008)
+  
+  return(database)
 }
 
-#fonction pour convertir les types en chiffre
-valeur_num_type <- function(database, col_name,fichier_type) {
+
+# Fonction pour convertir les types en chiffres
+valeur_num_type <- function(database, col_name, fichier_type) {
   
+  # Tableau des fréquences des types présents dans la colonne
   table_types <- table(database[[col_name]])
   print(table_types)
   
+  # Types uniques présents dans la colonne
   types_uniques <- unique(database[[col_name]])
+  
+  # Chiffres associés aux types
   chiffres_associes <- numeric(length(types_uniques))
   
+  # Assignation des chiffres aux types
   for (i in 1:length(types_uniques)) {
     chiffres_associes[i] <- i
   }
   
+  # Création d'un dataframe pour la correspondance entre types et chiffres
   correspondance <- data.frame(Type = types_uniques, Chiffre = chiffres_associes)
   
   # Ajout dans un fichier texte des types et de leurs chiffres associés
   correspondance_text <- paste(correspondance$Chiffre, correspondance$Type)
-  # création d'un fichier text contenant les types et leur chiffre  associé :
-  
+  # Création d'un fichier texte contenant les types et leur chiffre associé
   write(correspondance_text, file = fichier_type, append = TRUE, sep = "\n")
   
+  # Conversion des types en chiffres dans la colonne de la base de données
   for (i in 1:length(database[[col_name]])) {
     database[[col_name]][i] <- chiffres_associes[match(database[[col_name]][i], types_uniques)]
   }
+  
+  # Conversion de la colonne en type numérique
   variables_numeriques <- c(col_name)
   database[variables_numeriques] <- lapply(database[variables_numeriques], as.numeric)
   
   return(database)
 }
+
 
 #fonction pour construire une base de donnée
 construire_series_chronologiques <- function(data) {
@@ -91,9 +105,9 @@ construire_series_chronologiques <- function(data) {
   # Régression linéaire pour les séries mensuelles
   regression_mois <- lm(accidents_par_mois_cumulee~c(1:12))
   
-   # Régression linéaire pour les séries hebdomadaires
+  # Régression linéaire pour les séries hebdomadaires
   regression_semaine <- lm(accidents_par_semaine_cumulee ~ c(1:53))
-
+  
   
   # Calcul des erreurs de prédiction
   erreur_mois <- sum(regression_mois$residuals^2)
@@ -139,15 +153,15 @@ ajout_region <- function(E1, tot_habitants, regions) {
   
 }
 
-ajout_departement <- function(E1,regions) {
+ajout_departement <- function(E1, regions) {
   # Sélectionner les colonnes nécessaires pour la fusion
-  departement <- regions[, c("id_code_insee", "nom_departement","code_departement")]
+  departement <- regions[, c("id_code_insee", "nom_departement", "code_departement")]
   
   # Identifier les lignes avec des valeurs en double dans la colonne clé
   duplicates <- duplicated(departement$id_code_insee)
   
   # Sélectionner uniquement les lignes uniques
-  departement <- subset(departement, !duplicates)
+  departement <- departement[!duplicates, ]
   
   # Vérifier les duplications dans la colonne clé "id_code_insee"
   if (any(duplicated(departement$id_code_insee))) {
@@ -172,7 +186,7 @@ map_accident <- function(E1){
   palette <- c("Tué" = "black", "Blessé hospitalisé" = "red", "Blessé léger" = "orange","Indemne" = "blue" )
   E1$couleur <- palette[as.character(E1$descr_grav)]
   
-
+  
   # Création de la carte
   Sys.setenv("MAPBOX_TOKEN"="pk.eyJ1IjoiZW1pZTE4IiwiYSI6ImNsaDdxdXB2dDAxZmYzZW1tM3hhbWR3b24ifQ.zjp20nsMooS-xVfxn982pA")
   
@@ -285,5 +299,4 @@ JDD_accidents_regions <- function(E_100K) {
     mutate(accidents_par_100k = (nombre_accidents / PTOT) * 100000)
   return(data_final)
 }
-
 

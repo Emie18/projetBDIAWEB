@@ -1,17 +1,24 @@
+##################################################
+# Titre du script : Analyse des accidents de la route
+# Auteur : groupe
+# Date : 25/05/2023
+# Description : Ce script effectue une analyse des accidents de la route à partir d'une base de données.
+##################################################
+
 library(tidyverse)
 library(plotly)
 library(dplyr)
 library(lubridate)
-source("C:/Users/Emilie/Documents/ISEN 2022/projet_bigdata/bigdata/fonctions_Emi.r")
-source("C:/Users/Emilie/Documents/ISEN 2022/projet_bigdata/bigdata/fonction_regression.r")
+source("C:/Users/33784/Desktop/ISEN/A3/ProjetWebIAWEB/projetBDIAWEB/bigdata/fonctions_Emi.r")
+source("C:/Users/33784/Desktop/ISEN/A3/ProjetWebIAWEB/projetBDIAWEB/bigdata/fonction_regression.r")
 
 #ouverture des fichier csv
-database <- read.csv("C:/Users/Emilie/documents/ISEN 2022/stat_acc_V3.csv", header = TRUE, sep = ";",encoding = "UTF-8")
-tot_habitants <- read.csv("C:/Users/Emilie/Documents/ISEN 2022/Regions.csv", header = TRUE, sep = ";",encoding = "UTF-8")
-regions <- read.csv("C:/Users/Emilie/Documents/ISEN 2022/communes-departement-region.csv", header = TRUE, sep = ";",encoding = "UTF-8")
-tot_habitants_departement <-read.csv("C:/Users/Emilie/Documents/ISEN 2022/ptot_departement.csv", header = TRUE, sep = ",",encoding = "UTF-8")
+database <- read.csv("C:/Users/33784/Desktop/stat_acc_V3.csv", header = TRUE, sep = ";",encoding = "UTF-8")
+tot_habitants <- read.csv("C:/Users/33784/Desktop/Regions.csv", header = TRUE, sep = ";",encoding = "UTF-8")
+regions <- read.csv("C:/Users/33784/Desktop/communes-departement-region.csv", header = TRUE, sep = ";",fileEncoding = 'UTF-8-BOM')
+tot_habitants_departement <-read.csv("C:/Users/33784/Desktop/ptot_departement.csv", header = TRUE, sep = ",",encoding = "UTF-8")
 #-------CHANGER LE CHEMIN D'ACCES-----------------#
-fichier_type <- "C:/Users/Emilie/documents/ISEN 2022/type.txt"
+fichier_type <- "C:/Users/33784/Desktop/type.txt"
 
 
 #Nettoyage des données
@@ -42,25 +49,38 @@ regression_semaine<- re$regression_semaine
 regression_mois <- re$regression_mois
 accidents_par_mois_cumulee <- re$accidents_par_mois_cumulee
 accidents_par_semaine_cumulee <- re$accidents_par_semaine_cumulee
-niveau_agregation<- re$niveau_agregation
+comparer_regessions(re)
 
-#plot(accidents_par_mois_cumulee,main="Régression linéaire d'accidents par mois")
-#abline(coef(regression_mois))
+#afficher la droite de regression par moi
+plot(accidents_par_mois_cumulee,main="Régression linéaire d'accidents par mois")
+abline(coef(regression_mois))
 
-#plot(accidents_par_semaine_cumulee,main="Régression linéaire d'accidents par semaine")
-#abline(coef(regression_semaine))
+#afficher la droite de regression par semaine
+plot(accidents_par_semaine_cumulee,main="Régression linéaire d'accidents par semaine")
+abline(coef(regression_semaine))
 
-#R2_m <-cor(accidents_par_mois_cumulee,c(1:12))^2
-#R2_m
-#x_m <-cbind(rep(1,12),accidents_par_mois_cumulee)
-#R2_m_ajust <- R2_m-(1-R2_m)/(length(x_m)-1-1)
-#R2_m_ajust
+# Calcul du coefficient de détermination R2 pour les données mensuelles
+R2_m <- cor(accidents_par_mois_cumulee, c(1:12))^2
+R2_m  # Affichage du coefficient de détermination R2 pour les données mensuelles
 
-#R2_s <-cor(accidents_par_semaine_cumulee,c(1:53))^2
-#R2_s
-#x_s <-cbind(rep(1,53),accidents_par_semaine_cumulee)
-#R2_s_ajust <- R2_s-(1-R2_s)/(length(x_s)-1-1)
-#R2_s_ajust
+# Création de la matrice x_m contenant les valeurs des mois cumulés et une colonne de 1
+x_m <- cbind(rep(1, 12), accidents_par_mois_cumulee)
+
+# Calcul du coefficient de détermination R2 ajusté pour les données mensuelles
+R2_m_ajust <- R2_m - (1 - R2_m) / (length(x_m) - 1 - 1)
+R2_m_ajust  # Affichage du coefficient de détermination R2 ajusté pour les données mensuelles
+
+# Calcul du coefficient de détermination R2 pour les données hebdomadaires
+R2_s <- cor(accidents_par_semaine_cumulee, c(1:53))^2
+R2_s  # Affichage du coefficient de détermination R2 pour les données hebdomadaires
+
+# Création de la matrice x_s contenant les valeurs des semaines cumulées et une colonne de 1
+x_s <- cbind(rep(1, 53), accidents_par_semaine_cumulee)
+
+# Calcul du coefficient de détermination R2 ajusté pour les données hebdomadaires
+R2_s_ajust <- R2_s - (1 - R2_s) / (length(x_s) - 1 - 1)
+R2_s_ajust  # Affichage du coefficient de détermination R2 ajusté pour les données hebdomadaires
+
 
 E2_dep<- ajout_departement(E1,regions)
 #ajouter les regions à E1
@@ -98,24 +118,6 @@ suppressWarnings({
   E1[variables_numeriques] <- lapply(E1[variables_numeriques], as.numeric)
 })
 
-# Convertir la colonne de date/heure en format POSIXct
-E1$date <- as.POSIXct(E1$date, format = "%Y-%m-%d %H:%M:%S")
-
-# Extraire l'heure à partir de la colonne de date/heure et créer une nouvelle colonne "heure"
-E1$heure <- format(E1$date, "%H:%M:%S")
-
-# Diviser les heures en plages horaires (0-6h, 6-12h, 12-18h, 18-24h)
-plages_horaires <- cut(as.numeric(format(E1$date, "%H")), 
-                       breaks = c(0, 6, 12, 18, 24), 
-                       labels = c("0-6h", "6-12h", "12-18h", "18-24h"),
-                       include.lowest = TRUE)
-
-# Ajouter la colonne des plages horaires au dataframe
-E1$plages_horaires <- plages_horaires
-
-# Convertir la colonne de date en format DATE
-variables_dates <- c("date")
-E1[variables_dates] <- lapply(E1[variables_dates], as.Date)
 
 # Construire des séries chronologiques d'accidents par semaine et par mois
 re <- construire_series_chronologiques(E1)
