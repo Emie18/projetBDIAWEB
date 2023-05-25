@@ -155,7 +155,7 @@ creer_graphique_barres_v1(database, "descr_athmo", "n", "Conditions atmosphériq
 creer_graphique_barres_v1(database, "descr_etat_surf", "n", "Description de la surface", "Nombre d'accidents", "Nombre d'accidents en fonction de la description de la surface")
 
 # Créer le graphique à barres avec la gravité des accidents
-creer_graphique_barres_v1(database, "descr_grav", "n", "Description de la surface", "Nombre d'accidents", "Nombre d'accidents en fonction de la gravité")
+creer_graphique_barres_v1(database, "descr_grav", "n", "Gravité", "Nombre d'accidents", "Nombre d'accidents en fonction de la gravité")
 
 # Créer le graphique à barres avec les top 30 des villes par nombre d'accidents
 creer_graphique_barres_v2(top_villes, "ville", "n", "Ville", "Nombre d'accidents", "Top 30 des villes par nombre d'accidents")
