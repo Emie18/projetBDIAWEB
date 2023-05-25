@@ -4,6 +4,9 @@
 
 #fonction pour comparer la regression de 
 comparer_regessions <- function(resultats) {
+  
+  #récupéré la reponse quel est le meilleur pour prédire:
+  niveau_agregation <- resultats$niveau_agregation
   # Extraire les résultats des régressions
   regression_mois <- resultats$regression_mois
   regression_semaine <- resultats$regression_semaine
@@ -12,9 +15,6 @@ comparer_regessions <- function(resultats) {
   performance_mois <- summary(regression_mois)$r.squared
   performance_semaine <- summary(regression_semaine)$r.squared
   
-  # Analyser les erreurs types associées aux estimateurs
-  erreur_type_mois <- summary(regression_mois)$coefficients[, "Std. Error"]
-  erreur_type_semaine <- summary(regression_semaine)$coefficients[, "Std. Error"]
   
   # Calculer les intervalles de confiance à 95% pour ces estimateurs
   intervalle_confiance_mois <- confint(regression_mois)
@@ -44,6 +44,7 @@ comparer_regessions <- function(resultats) {
   print(intervalle_confiance_mois)
   cat("\nRégression semaine :\n")
   print(intervalle_confiance_semaine)
+  cat("Le meilleur :",niveau_agregation,"\n")
   
 }
 
@@ -125,5 +126,26 @@ carte_d <- function(E2,data,code,titre) {
       title = list(text = titre, x = 0.5))
   
   show(fig)
+}
+
+# Fonction pour créer un graphique à barres version 1
+creer_graphique_barres_v1 <- function(E1, variable_x, variable_y, x_label, y_label, titre) {
+  # Vérifier si la variable_x est "ville"
+  if (variable_x == "ville") {
+    # Créer le graphique à barres avec la variable_x en abscisse et le nombre d'occurrences en ordonnée
+    plot_ly(E1 %>% count(!!sym(variable_x)), x = ~get(variable_x), y = ~n, type = "bar") %>%
+      layout(xaxis = list(title = x_label), yaxis = list(title = y_label), title = titre)
+  } else {
+    # Créer le graphique à barres avec la variable_x en abscisse, le nombre d'occurrences en ordonnée et la couleur en fonction de la variable_x
+    plot_ly(E1 %>% count(!!sym(variable_x)), x = ~get(variable_x), y = ~n, type = "bar", color = ~as.factor(get(variable_x))) %>%
+      layout(xaxis = list(title = x_label), yaxis = list(title = y_label), title = titre)
+  }
+}
+
+# Fonction pour créer un graphique à barres version 2
+creer_graphique_barres_v2 <- function(E1, variable_x, variable_y, x_label, y_label, titre) {
+  # Créer le graphique à barres avec la variable_x en abscisse, la variable_y en ordonnée et la couleur en fonction de la variable_x
+  plot_ly(E1, x = ~get(variable_x), y = ~get(variable_y), type = "bar", color = ~get(variable_x)) %>%
+    layout(xaxis = list(title = x_label), yaxis = list(title = y_label), title = titre)
 }
 
