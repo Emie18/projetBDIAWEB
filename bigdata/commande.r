@@ -13,6 +13,7 @@ tot_habitants_departement <-read.csv("C:/Users/Emilie/Documents/ISEN 2022/ptot_d
 #-------CHANGER LE CHEMIN D'ACCES-----------------#
 fichier_type <- "C:/Users/Emilie/documents/ISEN 2022/type.txt"
 
+
 #Nettoyage des données
 E1 <- Nettoyage_des_donnees(database)
 database <- Nettoyage_des_donnees(database)
@@ -33,6 +34,7 @@ E1 <- valeur_num_type(E1, "descr_dispo_secu",fichier_type)
 E1 <- valeur_num_type(E1, "descr_grav",fichier_type)
 E1 <- valeur_num_type(E1, "descr_motif_traj",fichier_type)
 E1 <- valeur_num_type(E1, "descr_type_col",fichier_type)
+
 
 #appel de la fonction pour contruire la chronologie
 re <- construire_series_chronologiques(E1)
@@ -250,3 +252,6 @@ mosaicplot(table_croisee_6,
            color = residuals_adjusted_6,
            las = 1,
            main = "Mosaic Plot: descr_grav vs. descr_dispo_secu")
+
+# export :
+write.csv2(x = E1, file = "export_IA.csv")
