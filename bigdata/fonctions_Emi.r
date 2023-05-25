@@ -95,7 +95,6 @@ construire_series_chronologiques <- function(data) {
   regression_semaine <- lm(accidents_par_semaine_cumulee ~ c(1:53))
 
   
- 
   # Calcul des erreurs de prédiction
   erreur_mois <- sum(regression_mois$residuals^2)
   erreur_semaine <- sum(regression_semaine$residuals^2)
