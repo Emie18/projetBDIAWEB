@@ -1,8 +1,6 @@
 # projetBDIAWEB
 # Partie BigData
 
-Voici un exemple de fichier README.md rédigé en français pour votre code :
-
 ```
 # Projet Web IA - Analyse de données de statistiques d'accidents
 
