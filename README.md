@@ -23,16 +23,14 @@ install.packages(c("tidyverse", "plotly", "dplyr", "lubridate"))
 
 ## Instructions
 
-1. Téléchargez les fichiers CSV suivants :
+1. Assurez vous d'avoir les fichiers CSV suivants :
 
 - stat_acc_V3.csv
 - Regions.csv
 - communes-departement-region.csv
 - ptot_departement.csv
 
-2. Mettez à jour les chemins d'accès aux fichiers CSV dans le code (lignes 9-12).
-
-3. Exécutez le code en utilisant la commande `.r` dans RStudio ou tout autre environnement R.
+2. Exécutez le code du fichier commande.r dans RStudio ou tout autre environnement R.
 
 ## Nettoyage des données
 
